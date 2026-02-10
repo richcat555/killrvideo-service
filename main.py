@@ -44,6 +44,29 @@ def list_videos(limit: int = Query(10, ge=1, le=50)):
 
 
 # -------------------------
+# Get single video by ID
+# -------------------------
+@app.get("/videos/{videoid}")
+def get_video(videoid: str):
+    try:
+        db = get_db()
+        table = db.get_table("videos")
+        row = table.find_one({"videoid": videoid}, projection=VIDEO_PROJECTION)
+        if not row:
+            raise HTTPException(status_code=404, detail="Video not found")
+        return {
+            "videoid": str(row["videoid"]),
+            "name": row["name"],
+            "youtube_id": row.get("youtube_id"),
+            "category": row.get("category"),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -------------------------
 # Exercise #6 — Related videos (ANN vector search)
 # -------------------------
 @app.get("/videos/{videoid}/related")
