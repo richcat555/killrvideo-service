@@ -25,6 +25,8 @@ VIDEO_PROJECTION = {"videoid": True, "name": True, "youtube_id": True, "category
 def health():
     try:
         db = get_db()
+        # WORKSHOP EXERCISE #4a
+        # Use list_table_names() to verify Astra DB connectivity.
         tables = db.list_table_names()
         return {"status": "ok", "tables": tables}
     except Exception as e:
@@ -39,6 +41,8 @@ def list_videos(limit: int = Query(10, ge=1, le=50)):
     try:
         db = get_db()
         table = db.get_table("videos")
+        # WORKSHOP EXERCISE #5b
+        # Call find() on the table, passing named parameters for filter, skip, limit, and projection.
         rows = table.find({}, limit=limit, projection=VIDEO_PROJECTION)
         return [
             {
@@ -88,7 +92,8 @@ def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
         db = get_db()
         table = db.get_table("videos")
 
-        # 1) Fetch the base video's embedding vector
+        # WORKSHOP EXERCISE #6a
+        # Fetch the base video's embedding vector using find_one().
         base = table.find_one({"videoid": videoid})
 
         if not base or not base.get("content_features"):
@@ -96,7 +101,8 @@ def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
 
         vec = base["content_features"]
 
-        # 2) ANN search using the vector
+        # WORKSHOP EXERCISE #6b
+        # Run ANN vector search using DataAPIVector sort on content_features.
         rows = table.find(
             {},
             sort={"content_features": DataAPIVector(vec)},

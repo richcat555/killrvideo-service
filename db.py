@@ -16,6 +16,8 @@ def get_db():
     """Return a cached astrapy Database object, connecting on first call."""
     global _db
     if _db is None:
+        # WORKSHOP EXERCISE #4b
+        # Define client from DataAPIClient and set _db via get_database().
         client = DataAPIClient(TOKEN)
         _db = client.get_database(API_ENDPOINT, keyspace=KEYSPACE)
     return _db
