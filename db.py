@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import tempfile
 from urllib.request import Request, urlopen
 
@@ -9,9 +10,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_ID = os.getenv("ASTRA_DB_ID")
-TOKEN = os.getenv("ASTRA_DB_TOKEN")
+API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
+TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
 KEYSPACE = os.getenv("ASTRA_DB_KEYSPACE", "killrvideo")
+
+# Extract DB ID from the API endpoint URL
+DB_ID = re.match(r"https://([0-9a-f-]{36})", API_ENDPOINT).group(1)
 
 _session = None
 
