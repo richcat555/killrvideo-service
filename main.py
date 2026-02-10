@@ -1,3 +1,4 @@
+import re
 from uuid import UUID
 
 from astrapy.data_types import DataAPIVector
@@ -29,6 +30,14 @@ def _video_summary(r: dict) -> dict:
     }
 
 
+def _extract_youtube_id(url: str) -> str | None:
+    """Extract YouTube video ID from a URL like https://www.youtube.com/embed/69sHSF0iUqg"""
+    if not url:
+        return None
+    m = re.search(r"(?:embed/|watch\?v=|youtu\.be/)([a-zA-Z0-9_-]{11})", url)
+    return m.group(1) if m else None
+
+
 def _video_detail(r: dict) -> dict:
     """Map a DB row to the VideoDetailResponse shape expected by the frontend."""
     return {
@@ -44,7 +53,7 @@ def _video_detail(r: dict) -> dict:
         "content_rating": r.get("content_rating"),
         "category": r.get("category"),
         "language": r.get("language"),
-        "youtubeVideoId": r.get("youtube_id"),
+        "youtubeVideoId": r.get("youtube_id") or _extract_youtube_id(r.get("location", "")),
         "status": "COMPLETE",
         "viewCount": r.get("views", 0) or 0,
         "averageRating": None,
