@@ -21,3 +21,8 @@ Despite this, I completed the assignment independently by:
 - Implementing the backend logic without copying from the reference repo
 
 This repository contains my full working solution.
+## Authorship Note
+
+This project was completed independently by **richcat555** as part of the KillrVideo / Astra DB assignment.
+
+The GitHub account `max777-em` is my **alternative personal account**, used briefly during early environment setup. It does not represent external collaboration or shared development.
