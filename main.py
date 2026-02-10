@@ -1,9 +1,12 @@
-import uuid as _uuid
-
+from astrapy.data_types import DataAPIVector
 from fastapi import FastAPI, HTTPException, Query
-from db import get_session
+
+from db import get_db
 
 app = FastAPI(title="KillrVideo Service")
+
+VIDEO_PROJECTION = {"videoid": True, "name": True, "youtube_id": True, "category": True}
+
 
 # -------------------------
 # Exercise #4 — Health check
@@ -11,9 +14,9 @@ app = FastAPI(title="KillrVideo Service")
 @app.get("/health")
 def health():
     try:
-        session = get_session()
-        row = session.execute("SELECT now() FROM system.local").one()
-        return {"status": "ok", "now": str(row[0])}
+        db = get_db()
+        tables = db.list_table_names()
+        return {"status": "ok", "tables": tables}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -24,17 +27,15 @@ def health():
 @app.get("/videos")
 def list_videos(limit: int = Query(10, ge=1, le=50)):
     try:
-        session = get_session()
-        rows = session.execute(
-            "SELECT videoid, name, youtube_id, category FROM videos LIMIT %s",
-            (limit,)
-        )
+        db = get_db()
+        table = db.get_table("videos")
+        rows = table.find({}, limit=limit, projection=VIDEO_PROJECTION)
         return [
             {
-                "videoid": str(r.videoid),
-                "name": r.name,
-                "youtube_id": r.youtube_id,
-                "category": r.category,
+                "videoid": str(r["videoid"]),
+                "name": r["name"],
+                "youtube_id": r.get("youtube_id"),
+                "category": r.get("category"),
             }
             for r in rows
         ]
@@ -47,41 +48,33 @@ def list_videos(limit: int = Query(10, ge=1, le=50)):
 # -------------------------
 @app.get("/videos/{videoid}/related")
 def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
-    """
-    Exercise #6 — return videos similar to the given videoid using ANN on content_features
-    """
+    """Return videos similar to the given videoid using ANN on content_features."""
     try:
-        session = get_session()
+        db = get_db()
+        table = db.get_table("videos")
 
         # 1) Fetch the base video's embedding vector
-        base = session.execute(
-            "SELECT content_features FROM videos WHERE videoid = %s",
-            (_uuid.UUID(videoid),)
-        ).one()
+        base = table.find_one({"videoid": videoid})
 
-        if not base or not base.content_features:
+        if not base or not base.get("content_features"):
             raise HTTPException(status_code=404, detail="Video not found or missing embedding")
 
-        vec = list(base.content_features)
+        vec = base["content_features"]
 
-        # 2) ANN query: vector literal must be inlined in CQL
-        vec_literal = "[" + ",".join(f"{float(x):.8f}" for x in vec) + "]"
-
-        cql = f"""
-        SELECT videoid, name, category
-        FROM videos
-        ORDER BY content_features ANN OF {vec_literal}
-        LIMIT {limit}
-        """
-
-        rows = session.execute(cql)
+        # 2) ANN search using the vector
+        rows = table.find(
+            {},
+            sort={"content_features": DataAPIVector(vec)},
+            limit=limit + 1,
+            projection={"videoid": True, "name": True, "category": True},
+        )
 
         # Exclude the source video itself
         return [
-            {"videoid": str(r.videoid), "name": r.name, "category": r.category}
+            {"videoid": str(r["videoid"]), "name": r["name"], "category": r.get("category")}
             for r in rows
-            if str(r.videoid) != videoid
-        ]
+            if str(r["videoid"]) != videoid
+        ][:limit]
 
     except HTTPException:
         raise
