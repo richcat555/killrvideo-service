@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from astrapy.data_types import DataAPIVector
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
 
 from db import get_db
 
@@ -14,6 +14,7 @@ def _validate_uuid(value: str) -> str:
     return value
 
 app = FastAPI(title="KillrVideo Service")
+router = APIRouter(prefix="/api/v1")
 
 VIDEO_PROJECTION = {"videoid": True, "name": True, "youtube_id": True, "category": True}
 
@@ -36,7 +37,7 @@ def health():
 # -------------------------
 # Exercise #5 — List videos
 # -------------------------
-@app.get("/videos")
+@router.get("/videos")
 def list_videos(limit: int = Query(10, ge=1, le=50)):
     try:
         db = get_db()
@@ -60,7 +61,7 @@ def list_videos(limit: int = Query(10, ge=1, le=50)):
 # -------------------------
 # Get single video by ID
 # -------------------------
-@app.get("/videos/{videoid}")
+@router.get("/videos/{videoid}")
 def get_video(videoid: str):
     _validate_uuid(videoid)
     try:
@@ -84,7 +85,7 @@ def get_video(videoid: str):
 # -------------------------
 # Exercise #6 — Related videos (ANN vector search)
 # -------------------------
-@app.get("/videos/{videoid}/related")
+@router.get("/videos/{videoid}/related")
 def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
     """Return videos similar to the given videoid using ANN on content_features."""
     _validate_uuid(videoid)
@@ -127,3 +128,6 @@ def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+app.include_router(router)
