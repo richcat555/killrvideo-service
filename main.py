@@ -1,7 +1,17 @@
+from uuid import UUID
+
 from astrapy.data_types import DataAPIVector
 from fastapi import FastAPI, HTTPException, Query
 
 from db import get_db
+
+
+def _validate_uuid(value: str) -> str:
+    try:
+        UUID(value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid UUID: {value}")
+    return value
 
 app = FastAPI(title="KillrVideo Service")
 
@@ -48,6 +58,7 @@ def list_videos(limit: int = Query(10, ge=1, le=50)):
 # -------------------------
 @app.get("/videos/{videoid}")
 def get_video(videoid: str):
+    _validate_uuid(videoid)
     try:
         db = get_db()
         table = db.get_table("videos")
@@ -72,6 +83,7 @@ def get_video(videoid: str):
 @app.get("/videos/{videoid}/related")
 def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
     """Return videos similar to the given videoid using ANN on content_features."""
+    _validate_uuid(videoid)
     try:
         db = get_db()
         table = db.get_table("videos")
