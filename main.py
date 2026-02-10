@@ -67,11 +67,17 @@ def related_videos(videoid: str, limit: int = Query(5, ge=1, le=20)):
             sort={"content_features": DataAPIVector(vec)},
             limit=limit + 1,
             projection={"videoid": True, "name": True, "category": True},
+            include_similarity=True,
         )
 
         # Exclude the source video itself
         return [
-            {"videoid": str(r["videoid"]), "name": r["name"], "category": r.get("category")}
+            {
+                "videoid": str(r["videoid"]),
+                "name": r["name"],
+                "category": r.get("category"),
+                "similarity": r.get("$similarity"),
+            }
             for r in rows
             if str(r["videoid"]) != videoid
         ][:limit]
